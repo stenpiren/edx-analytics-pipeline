@@ -30,8 +30,8 @@ from edx.analytics.tasks.warehouse.load_internal_reporting_course_catalog import
 log = logging.getLogger(__name__)
 
 
-class EnterpriseUserEnrollmentRecord(Record):
-    """Summarizes a enterprise user's enrollment"""
+class EnterpriseUserRecord(Record):
+    """Summarizes an enterprise user"""
     enterprise_id = StringField(length=32, nullable=False, description='')
     lms_user_id = IntegerField(nullable=False, description='')
     enterprise_user_id = IntegerField(nullable=False, description='')
@@ -42,9 +42,9 @@ class EnterpriseUserEnrollmentRecord(Record):
     user_country_code = StringField(length=2, description='')
     last_activity_date = DateField(description='')
 
-class EnterpriseUserEnrollmentHiveTableTask(BareHiveTableTask):
+class EnterpriseUserHiveTableTask(BareHiveTableTask):
     """
-    Creates the metadata for the enterprise_user_enrollment hive table
+    Creates the metadata for the enterprise_user hive table
     """
     @property  # pragma: no cover
     def partition_by(self):
@@ -52,22 +52,22 @@ class EnterpriseUserEnrollmentHiveTableTask(BareHiveTableTask):
 
     @property
     def table(self):  # pragma: no cover
-        return 'enterprise_user_enrollment'
+        return 'enterprise_user'
 
     @property
     def columns(self):
-        return EnterpriseUserEnrollmentRecord.get_hive_schema()
+        return EnterpriseUserRecord.get_hive_schema()
 
 
-class EnterpriseUserEnrollmentHivePartitionTask(HivePartitionTask):
+class EnterpriseUserHivePartitionTask(HivePartitionTask):
     """
-    Generates the enterprise_user_enrollment hive partition.
+    Generates the enterprise_user hive partition.
     """
     date = luigi.DateParameter()
 
     @property
     def hive_table_task(self):  # pragma: no cover
-        return EnterpriseUserEnrollmentHiveTableTask(
+        return EnterpriseUserHiveTableTask(
             warehouse_path=self.warehouse_path,
             overwrite=self.overwrite
         )
@@ -78,13 +78,13 @@ class EnterpriseUserEnrollmentHivePartitionTask(HivePartitionTask):
         return self.date.isoformat()  # pylint: disable=no-member
 
 
-class EnterpriseUserEnrollmentDataTask(
+class EnterpriseUserDataTask(
     OverwriteHiveAndMysqlDownstreamMixin,
     LoadInternalReportingCourseCatalogMixin,
     OverwriteAwareHiveQueryDataTask
 ):
     """
-    Executes a hive query to gather enterprise user enrollment data and store it in the enterprise_user_enrollment hive table.
+    Executes a hive query to gather enterprise user data and store it in the enterprise_user hive table.
     """
 
     otto_credentials = luigi.Parameter(
@@ -140,14 +140,14 @@ class EnterpriseUserEnrollmentDataTask(
     @property
     def hive_partition_task(self):  # pragma: no cover
         """The task that creates the partition used by this job."""
-        return EnterpriseUserEnrollmentHivePartitionTask(
+        return EnterpriseUserHivePartitionTask(
             date=self.date,
             warehouse_path=self.warehouse_path,
             overwrite=self.overwrite,
         )
 
     def requires(self):  # pragma: no cover
-        for requirement in super(EnterpriseUserEnrollmentDataTask, self).requires():
+        for requirement in super(EnterpriseUserDataTask, self).requires():
             yield requirement
 
         # the process that generates the source table used by this query
@@ -169,39 +169,22 @@ class EnterpriseUserEnrollmentDataTask(
             )
         )
 
-        kwargs = {
-            'credentials': self.otto_credentials,
-            'database': self.otto_database,
-        }
-        yield (
-            ImportProductCatalog(**kwargs),
-            ImportCurrentOrderLineState(**kwargs),
-            ImportCurrentOrderDiscountState(**kwargs),
-            ImportVoucherTask(**kwargs),
-            ImportStockRecordTask(**kwargs),
-            ImportCurrentOrderState(**kwargs),
-            ImportEcommerceUser(**kwargs),
-            ImportConditionalOfferTask(**kwargs),
-            ImportBenefitTask(**kwargs),
-        )
-
-
-class EnterpriseUserEnrollmentMysqlTask(
+class EnterpriseUserMysqlTask(
     OverwriteHiveAndMysqlDownstreamMixin,
     LoadInternalReportingCourseCatalogMixin,
     MysqlInsertTask
 ):
     """
-    All enrollments of enterprise users
+    All of enterprise users
     """
 
     @property
     def table(self):  # pragma: no cover
-        return 'enterprise_user_enrollment'
+        return 'enterprise_user'
 
     @property
     def insert_source_task(self):  # pragma: no cover
-        return EnterpriseUserEnrollmentDataTask(
+        return EnterpriseUserDataTask(
             warehouse_path=self.warehouse_path,
             overwrite_hive=self.overwrite_hive,
             overwrite_mysql=self.overwrite_mysql,
@@ -213,7 +196,7 @@ class EnterpriseUserEnrollmentMysqlTask(
 
     @property
     def columns(self):
-        return EnterpriseUserEnrollmentRecord.get_sql_schema()
+        return EnterpriseUserRecord.get_sql_schema()
 
     @property
     def indexes(self):
@@ -223,7 +206,7 @@ class EnterpriseUserEnrollmentMysqlTask(
 
 
 @workflow_entry_point
-class ImportEnterpriseUserEnrollmentsIntoMysql(
+class ImportEnterpriseUsersIntoMysql(
     OverwriteHiveAndMysqlDownstreamMixin,
     LoadInternalReportingCourseCatalogMixin,
     luigi.WrapperTask
@@ -242,5 +225,5 @@ class ImportEnterpriseUserEnrollmentsIntoMysql(
         }
 
         yield [
-            EnterpriseUserEnrollmentMysqlTask(**kwargs),
+            EnterpriseUserMysqlTask(**kwargs),
         ]
