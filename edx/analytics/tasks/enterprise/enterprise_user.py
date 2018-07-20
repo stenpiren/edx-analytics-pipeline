@@ -1,5 +1,4 @@
-"""Compute metrics related to user enrollments in courses"""
-
+"""Gather data related to enterprise users"""
 import logging
 
 import luigi
@@ -107,7 +106,7 @@ class EnterpriseUserDataTask(
                 auth_user.username AS user_username,
                 user_profile.country AS user_country_code,
                 user_activity.latest_date AS last_activity_date,
-            FROM enterprise_enterprisecourseenrollment enterprise_course_enrollment
+            FROM enterprise_enterprisecustomeruser enterprise_user
             JOIN auth_user auth_user
                     ON enterprise_user.user_id = auth_user.id
             JOIN auth_userprofile user_profile
@@ -154,7 +153,7 @@ class EnterpriseUserDataTask(
         yield (
             ImportAuthUserTask(),
             ImportAuthUserProfileTask(),
-            ImportEnterpriseCourseEnrollmentUserTask(),
+            ImportEnterpriseCustomerUserTask(),
             ImportUserSocialAuthTask(),
             UserActivityTableTask(
                 warehouse_path=self.warehouse_path,
