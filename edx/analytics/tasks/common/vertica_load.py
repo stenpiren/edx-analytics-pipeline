@@ -133,7 +133,7 @@ class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
 
     @property
     def unique_columns(self):
-        """List of list containing column or group of columns on which the UNIQUE constraint would be added."""
+        """List of lists containing column or group of columns on which the UNIQUE constraint would be added."""
         return []
 
     @property
