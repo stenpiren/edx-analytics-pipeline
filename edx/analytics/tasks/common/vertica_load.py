@@ -446,7 +446,6 @@ class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
                     insert_source_file
                 )
                 log.debug("Finished stream copy from source file")
-
         except RuntimeError:
             # While calling finish on an input target, Luigi throws a RuntimeError exception if the subprocess command
             # to read the input returns a non-zero return code. As all of the data's been read already, we choose to ignore
