@@ -471,14 +471,8 @@ class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
             cursor.execute(query)
             row = cursor.fetchone()
             if row:
-                constraint_violation_msg = "{type} key violation on table: {schema}.{table} with column values:{val}".
-                    format(
-                        type=row[4],
-                        schema=row[0],
-                        table=row[1],
-                        val=row[5],
-                    )
-                raise Exception(constraint_violation_msg)
+                raise Exception('{type} key violation on table: {schema}.{table} with column values:{val}'.
+                                format(type=row[4], schema=row[0], table=row[1], val=row[5]))
 
     @property
     def restricted_columns(self):
