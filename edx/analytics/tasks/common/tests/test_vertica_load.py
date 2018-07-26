@@ -86,6 +86,19 @@ class CopyToVerticaDummyTableWithProjections(CopyToVerticaDummyTable):
         ]
 
 
+class CopyToVerticaDummyTableWithUniqueColumns(CopyToVerticaDummyTable):
+    """
+    Define table for testing with unique columns.
+    """
+
+    @property
+    def unique_columns(self):
+        return [
+            ('course_id',),
+            ('course_id', 'label')
+        ]
+
+
 class VerticaCopyTaskTest(unittest.TestCase):
     """
     Ensure we can connect to and write data to Vertica data sources.
@@ -281,6 +294,24 @@ class VerticaCopyTaskTest(unittest.TestCase):
                 "(id AUTO_INCREMENT,course_id VARCHAR(255),"
                 "interval_start DATETIME,interval_end DATETIME,label VARCHAR(255),"
                 "count INT,created TIMESTAMP DEFAULT NOW(),PRIMARY KEY (id))"
+            ),
+            call("SET TIMEZONE TO 'GMT';"),
+        ]
+        self.assertEquals(expected, mock_cursor.execute.mock_calls)
+
+    @with_luigi_config(('vertica-export', 'schema', 'foobar'))
+    def test_create_schema_with_unique_columns(self):
+        task = self.create_task(cls=CopyToVerticaDummyTableWithUniqueColumns)
+        task.run()
+        mock_cursor = self.mock_vertica_connector.connect.return_value.cursor.return_value
+        expected = [
+            call("CREATE SCHEMA IF NOT EXISTS foobar"),
+            call(
+                "CREATE TABLE IF NOT EXISTS foobar.dummy_table "
+                "(id AUTO_INCREMENT,course_id VARCHAR(255),"
+                "interval_start DATETIME,interval_end DATETIME,label VARCHAR(255),"
+                "count INT,created TIMESTAMP DEFAULT NOW(),PRIMARY KEY (id), "
+                "UNIQUE(course_id), UNIQUE(course_id, label))"
             ),
             call("SET TIMEZONE TO 'GMT';"),
         ]

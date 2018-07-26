@@ -687,7 +687,7 @@ class LoadInternalReportingCourseToWarehouse(LoadInternalReportingCourseCatalogM
     @property
     def unique_columns(self):
         return [
-            ['course_id']
+            ('course_id',)
         ]
 
     @property

@@ -150,7 +150,7 @@ class PostLoadWarehouseTask(WarehouseMixin, SchemaManagementTask):
                 marker_schema=self.marker_schema,
                 overwrite=self.overwrite,
                 n_reduce_tasks=self.n_reduce_tasks,
-                warehouse_path=self.warehouse_path
+                warehouse_path=self.warehouse_path,
             ),
             'credentials': ExternalURL(self.credentials)
         }

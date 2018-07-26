@@ -133,7 +133,10 @@ class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
 
     @property
     def unique_columns(self):
-        """List of lists containing column or group of columns on which the UNIQUE constraint would be added."""
+        """
+        List of tuples, each containing column or group of columns on which the UNIQUE constraint would be added.
+        Example: [('c1',), ('c1, 'c2',)]
+        """
         return []
 
     @property
@@ -459,7 +462,7 @@ class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
     def analyze_constraints(self, cursor):
         # Vertica does not check for constraint violations during data loading.
         # We explicitly check for violations by calling ANALYZE_CONSTRAINTS function, and fail
-        # the workflow if a voilation is found.
+        # the workflow if a violation is found.
         if self.foreign_key_mapping or self.unique_columns:
             query = "SELECT ANALYZE_CONSTRAINTS('{schema}.{table}')".format(
                 schema=self.schema,
@@ -468,10 +471,14 @@ class VerticaCopyTask(VerticaCopyTaskMixin, luigi.Task):
             cursor.execute(query)
             row = cursor.fetchone()
             if row:
-                raise Exception('Failed to validate constraints on {schema}.{table}'.format(
-                    schema=self.schema,
-                    table=self.table
-                ))
+                constraint_violation_msg = "{type} key violation on table: {schema}.{table} with column values:{val}".
+                    format(
+                        type=row[4],
+                        schema=row[0],
+                        table=row[1],
+                        val=row[5],
+                    )
+                raise Exception(constraint_violation_msg)
 
     @property
     def restricted_columns(self):
